@@ -1,0 +1,25 @@
+{
+  "name": "test",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "adm-zip": "^0.5.15",
+    "axios": "^1.7.4",
+    "bedrock-protocol": "^3.39.0",
+    "crypto": "^1.0.1",
+    "form-data": "^4.0.0",
+    "inquirer": "^9.2.9",
+    "path": "^0.12.7",
+    "progress": "^2.0.3"
+  },
+  "devDependencies": {
+    "@types/adm-zip": "^0.5.5",
+    "@types/crypto-js": "^4.2.2"
+  }
+}
