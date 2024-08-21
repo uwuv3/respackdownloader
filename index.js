@@ -1,4 +1,8 @@
+process.on("unhandledRejection", console.log);
+process.on("uncaughtExceptionMonitor", console.log);
+process.on("uncaughtException", console.log);
 //process.env.DEBUG = ["minecraft-protocol"]
+process.env.DEBUG = 'bindings';
 const bedrock = require("bedrock-protocol");
 const Options = require("bedrock-protocol/src/options");
 const fs = require("fs");
@@ -41,7 +45,6 @@ getResult({
     server_port = Number(ress);
 
     const client = createClient({
-      
       offline: false,
       host: server_ip,
       port: server_port,
@@ -53,7 +56,7 @@ getResult({
     let saved_files = [];
     let currentID = undefined;
     client.on("resource_packs_info", async (json) => {
-      console.log(JSON.stringify(json,null,0));
+      console.log(JSON.stringify(json, null, 0));
       packs = json.texture_packs.map((x) => {
         x.text = x.uuid + "_" + x.version;
         return x;
@@ -72,39 +75,40 @@ getResult({
         let downloadedLength = 0;
 
         const progressBar = new ProgressBar(
-            "Downloading [:bar] :percent :etas",
-            {
-              total: 100, // Total progress bar length (in percent)
-              width: 40, // Width of the progress bar
-              complete: "=",
-              incomplete: " ",
-              renderThrottle: 100, // Update the progress bar every 100ms
-            }
-          );
+          "Downloading [:bar] :percent :etas",
+          {
+            total: 100, // Total progress bar length (in percent)
+            width: 40, // Width of the progress bar
+            complete: "=",
+            incomplete: " ",
+            renderThrottle: 100, // Update the progress bar every 100ms
+          }
+        );
         const links = json.resource_pack_links.map(async (x) => {
-            return new Promise(async a=>{
+          return new Promise(async (a) => {
+            const data = await axios({
+              url: x.url,
+              method: "GET",
+              responseType: "stream",
+            });
+            let chunks = [];
+            totalLength = totalLength + data.headers["content-length"];
+            // Handle data streaming
+            data.data.on("data", (chunk) => {
+              downloadedLength += chunk.length;
+              chunks.push(chunk);
+              const percent = Math.round(
+                (downloadedLength / totalLength) * 100
+              );
+              progressBar.update(percent / 100);
+            });
 
-                const data = await axios({
-                    url: x.url,
-                    method: "GET",
-                    responseType: "stream",
-                  });
-                  let chunks = [];
-                  totalLength = totalLength + data.headers["content-length"];
-                  // Handle data streaming
-                  data.data.on("data", (chunk) => {
-                    downloadedLength += chunk.length;
-                    chunks.push(chunk);
-                    const percent = Math.round((downloadedLength / totalLength) * 100);
-                    progressBar.update(percent / 100);
-                  });
-        
-                  data.data.on("end", () => {
-                    const buffer = Buffer.concat(chunks);
-                    savePayloadToZip(x.id, buffer);
-                    a()
-                  });
-            })
+            data.data.on("end", () => {
+              const buffer = Buffer.concat(chunks);
+              savePayloadToZip(x.id, buffer);
+              a();
+            });
+          });
         });
         await Promise.all(links);
         client.close();
@@ -235,24 +239,23 @@ getResult({
         pack_id: currentID,
       });
     });
-    const packMap = new Map(),progressbar= new ProgressBar(
-            "Downloading [:bar] :percent :etas",
-            {
-              total: 100,
-              width: 40,
-              complete: "=",
-              incomplete: " ",
-              renderThrottle: 100,
-            }
-          )
-          let totalChunks = 0,downloadedChunks=0;
+    const packMap = new Map(),
+      progressbar = new ProgressBar("Downloading [:bar] :percent :etas", {
+        total: 100,
+        width: 40,
+        complete: "=",
+        incomplete: " ",
+        renderThrottle: 100,
+      });
+    let totalChunks = 0,
+      downloadedChunks = 0;
     client.on("resource_pack_data_info", (data) => {
       packMap.set(data.pack_id, {
         chunk_count: data.chunk_count,
         chunks: new Map(),
-        currentChunk: 0
+        currentChunk: 0,
       });
-      totalChunks = totalChunks + Number(data.size)
+      totalChunks = totalChunks + Number(data.size);
       client.write("resource_pack_chunk_request", {
         response_status: "send_packs",
         pack_id: data.pack_id,
@@ -264,13 +267,13 @@ getResult({
         packMap.set(data.pack_id, {
           chunk_count: data.chunk_count,
           chunks: new Map(),
-          currentChunk: 0
+          currentChunk: 0,
         });
 
       const packInfo = packMap.get(data.pack_id);
       if (packInfo) {
         packInfo.chunks.set(data.chunk_index, data.payload);
-        downloadedChunks += data.payload.byteLength; 
+        downloadedChunks += data.payload.byteLength;
         const percent = Math.round((downloadedChunks / totalChunks) * 100);
         progressbar.update(percent / 100);
         if (packInfo.chunks.size === packInfo.chunk_count) {
@@ -356,8 +359,8 @@ getResult({
 
 function createClient(options) {
   const client = new bedrock.Client({
-    useRaknetWorker:false,
-    raknetBackend:"raknet-node",
+    useRaknetWorker: false,
+    raknetBackend: "jsp-raknet",
     port: options.port || 19132,
     followPort: !options.realms,
     ...options,
