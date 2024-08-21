@@ -17,9 +17,5 @@
     "inquirer": "^9.2.9",
     "path": "^0.12.7",
     "progress": "^2.0.3"
-  },
-  "devDependencies": {
-    "@types/adm-zip": "^0.5.5",
-    "@types/crypto-js": "^4.2.2"
   }
 }

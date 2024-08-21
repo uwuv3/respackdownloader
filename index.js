@@ -6,7 +6,6 @@ const path = require("path");
 const AdmZip = require("adm-zip");
 const crypto = require("crypto");
 const gofile = require("./gofileupload.js");
-const assert = require("assert");
 const ProgressBar = require("progress");
 
 const { Readable } = require("stream");
@@ -53,7 +52,7 @@ getResult({
     let saved_files = [];
     let currentID = undefined;
     client.on("resource_packs_info", async (json) => {
-      console.log(json);
+      console.log(JSON.stringify(json,null,0));
       packs = json.texture_packs.map((x) => {
         x.text = x.uuid + "_" + x.version;
         return x;
@@ -150,9 +149,6 @@ getResult({
 
             const keyBuffer = Buffer.from(key);
             const iv = keyBuffer.slice(0, 16);
-            if (!/^[a-zA-Z0-9]{32}$/.test(key)) {
-              console.warn(`Probably ${key} is not a encryption key.`);
-            }
             if (contentEntry) {
               const contentBody = contentEntry.slice(0x100);
               const decryptedContent = Buffer.from(
@@ -358,8 +354,8 @@ getResult({
 });
 
 function createClient(options) {
-  assert(options);
   const client = new bedrock.Client({
+    useRaknetWorker:false,
     port: options.port || 19132,
     followPort: !options.realms,
     ...options,
