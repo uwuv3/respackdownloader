@@ -309,7 +309,7 @@ getResult({
       zipFiles
         .filter((x) => typeof x !== "undefined")
         .forEach((buff, i) => {
-          zip.addFile(buff.pack_id, buff.buffer);
+          zip.addFile(`${buff.pack_id}.zip`, buff.buffer);
           if (download) {
             const zipDir = "./decrypted";
             const zipFilename = `${buff.pack_id}.zip`;
