@@ -41,6 +41,7 @@ getResult({
     server_port = Number(ress);
 
     const client = createClient({
+      
       offline: false,
       host: server_ip,
       port: server_port,
@@ -356,6 +357,7 @@ getResult({
 function createClient(options) {
   const client = new bedrock.Client({
     useRaknetWorker:false,
+    raknetBackend:"raknet-node",
     port: options.port || 19132,
     followPort: !options.realms,
     ...options,
