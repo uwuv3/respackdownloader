@@ -224,7 +224,11 @@ getResult({
                 }
               }
               resolve({ pack_id, buffer: newZip.toBuffer() });
-            } else resolve({ pack_id, buffer: payloadBuffer });
+            } else {
+              if (zipEntries.find((e) => e.entryName == "manifest.json"))
+                resolve({ pack_id, buffer: payloadBuffer });
+              else resolve();
+            }
           } catch (error) {
             console.log(error);
             resolve();
