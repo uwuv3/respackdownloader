@@ -2,7 +2,7 @@ process.on("unhandledRejection", console.log);
 process.on("uncaughtExceptionMonitor", console.log);
 process.on("uncaughtException", console.log);
 //process.env.DEBUG = ["minecraft-protocol"]
-process.env.DEBUG = 'bindings';
+process.env.DEBUG = "bindings";
 const bedrock = require("bedrock-protocol");
 const Options = require("bedrock-protocol/src/options");
 const fs = require("fs");
@@ -56,7 +56,7 @@ getResult({
     let saved_files = [];
     let currentID = undefined;
     client.on("resource_packs_info", async (json) => {
-      console.log(JSON.stringify(json, null, 0));
+      console.log(json);
       packs = json.texture_packs.map((x) => {
         x.text = x.uuid + "_" + x.version;
         return x;
@@ -103,10 +103,14 @@ getResult({
               progressBar.update(percent / 100);
             });
 
-            data.data.on("end", () => {
-              const buffer = Buffer.concat(chunks);
-              savePayloadToZip(x.id, buffer);
-              a();
+            data.data.on("end", (y) => {
+              try {
+                const buffer = Buffer.concat(chunks);
+                savePayloadToZip(x.id, buffer);
+                a();
+              } catch (error) {
+                console.log(error);
+              }
             });
           });
         });
@@ -151,7 +155,13 @@ getResult({
             const contentEntry = zipEntries
               .find((entry) => entry.entryName === "contents.json")
               ?.getData();
-
+            const zip = zipEntries.find((x) => x.entryName === "content.zip");
+            if (zip) {
+              const content = zip.getData();
+              savePayloadToZip(pack_id, content);
+              resolve();
+              return;
+            }
             const keyBuffer = Buffer.from(key);
             const iv = keyBuffer.slice(0, 16);
             if (contentEntry) {
@@ -360,7 +370,6 @@ getResult({
 function createClient(options) {
   const client = new bedrock.Client({
     useRaknetWorker: false,
-    raknetBackend: "jsp-raknet",
     port: options.port || 19132,
     followPort: !options.realms,
     ...options,
