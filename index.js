@@ -118,6 +118,27 @@ getResult({
         client.close();
       }
     });
+    const compressFolder = (zipEntries, folderName) => {
+      const folderZip = new AdmZip();
+      const hasContentsJson = folderEntries.some((entry) => path.basename(entry.entryName) === "contents.json");
+  
+      if (!hasContentsJson) {
+        return null; 
+      }
+      const folderEntries = zipEntries.filter(
+        (entry) =>
+          entry.entryName.startsWith(folderName) &&
+          entry.entryName !== folderName
+      );
+
+      folderEntries.forEach((entry) => {
+        const relativePath = entry.entryName.replace(folderName, "");
+        folderZip.addFile(relativePath, entry.getData());
+      });
+
+      return folderZip.toBuffer();
+    };
+
     let payloads = [];
     function savePayloadToZip(pack_id, payloadBuffer) {
       payloads.push(
@@ -144,6 +165,15 @@ getResult({
           }
           const zip = new AdmZip(payloadBuffer);
           const zipEntries = zip.getEntries();
+          zipEntries.forEach((entry) => {
+            if (entry.isDirectory) {
+              const folderBuffer = compressFolder(zipEntries, entry.entryName);
+           if(folderBuffer)   savePayloadToZip(
+                `${entry.entryName.replace(/\//,"_")}_${pack_id}`,
+                folderBuffer
+              );
+            }
+          });
           try {
             let key = packs.find(
               (x) => x.text == pack_id || x.uuid == pack_id
@@ -152,9 +182,9 @@ getResult({
               (x) => x.text == pack_id || x.uuid == pack_id
             ).content_identity;
             let content;
-            const contentEntry = zipEntries
-              .find((entry) => entry.entryName === "contents.json")
-              ?.getData();
+            const contentEntry = zipEntries.find(
+              (entry) => entry.entryName == "content.json"
+            );
             const zip = zipEntries.find((x) => x.entryName === "content.zip");
             if (zip) {
               const content = zip.getData();
@@ -163,7 +193,7 @@ getResult({
             const keyBuffer = Buffer.from(key);
             const iv = keyBuffer.slice(0, 16);
             if (contentEntry) {
-              const contentBody = contentEntry.slice(0x100);
+              const contentBody = contentEntry?.getData().slice(0x100);
               const decryptedContent = Buffer.from(
                 crypto
                   .createDecipheriv("aes-256-cfb8", keyBuffer, iv)
