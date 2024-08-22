@@ -159,8 +159,6 @@ getResult({
             if (zip) {
               const content = zip.getData();
               savePayloadToZip(pack_id, content);
-              resolve();
-              return;
             }
             const keyBuffer = Buffer.from(key);
             const iv = keyBuffer.slice(0, 16);
