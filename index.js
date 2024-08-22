@@ -52,7 +52,7 @@ getResult({
     });
     let uids = [];
     let packs = [];
-    let download = true;
+    let download = false;
     let saved_files = [];
     let currentID = undefined;
     client.on("resource_packs_info", async (json) => {
