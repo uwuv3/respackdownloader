@@ -426,6 +426,7 @@ function createClient(options) {
   const client = new bedrock.Client({
     port: options.port || 19132,
     followPort: !options.realms,
+    profilesFolder:path.join(__dirname,"profiles"),
     ...options,
     delayedInit: true,
   });
