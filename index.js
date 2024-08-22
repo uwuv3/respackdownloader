@@ -473,6 +473,7 @@ function cc(realm, ip, port) {
     );
   });
 }
+
 function createClient(options) {
   const client = new bedrock.Client({
     port: options.port || 19132,
