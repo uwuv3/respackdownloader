@@ -369,7 +369,6 @@ getResult({
 
 function createClient(options) {
   const client = new bedrock.Client({
-    useRaknetWorker: false,
     port: options.port || 19132,
     followPort: !options.realms,
     ...options,
