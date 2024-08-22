@@ -226,7 +226,7 @@ getResult({
                 }
               }
               resolve({ pack_id, buffer: newZip.toBuffer() });
-            } else resolve({ pack_id, buffer: zip.toBuffer() });
+            } else resolve({ pack_id, buffer: payloadBuffer });
           } catch (error) {
             console.log(error);
             resolve();
