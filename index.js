@@ -52,7 +52,7 @@ getResult({
     });
     let uids = [];
     let packs = [];
-    let download = false;
+    let download = true;
     let saved_files = [];
     let currentID = undefined;
     client.on("resource_packs_info", async (json) => {
@@ -120,17 +120,19 @@ getResult({
     });
     const compressFolder = (zipEntries, folderName) => {
       const folderZip = new AdmZip();
-      const hasContentsJson = folderEntries.some((entry) => path.basename(entry.entryName) === "contents.json");
-  
-      if (!hasContentsJson) {
-        return null; 
-      }
+
       const folderEntries = zipEntries.filter(
         (entry) =>
           entry.entryName.startsWith(folderName) &&
           entry.entryName !== folderName
       );
+      const hasContentsJson = folderEntries.some(
+        (entry) => path.basename(entry.entryName) === "contents.json"
+      );
 
+      if (!hasContentsJson) {
+        return null;
+      }
       folderEntries.forEach((entry) => {
         const relativePath = entry.entryName.replace(folderName, "");
         folderZip.addFile(relativePath, entry.getData());
@@ -138,7 +140,14 @@ getResult({
 
       return folderZip.toBuffer();
     };
+    function extractUUID(pack_id) {
+      // Regular expression to match UUID v4 format
+      const uuidRegex =
+        /[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}/;
 
+      const match = pack_id.match(uuidRegex);
+      return match ? match[0] : null;
+    }
     let payloads = [];
     function savePayloadToZip(pack_id, payloadBuffer) {
       payloads.push(
@@ -166,30 +175,39 @@ getResult({
           const zip = new AdmZip(payloadBuffer);
           const zipEntries = zip.getEntries();
           zipEntries.forEach((entry) => {
+            if (entry.entryName.endsWith(".zip")) {
+              if (!entry.isDirectory) {
+                const content = entry.getData();
+                savePayloadToZip(
+                  `${pack_id}}${entry.entryName}`,
+                  //          .replace(".zip", "")
+                  //           .replace(/\//, "_")}`,
+                  content
+                );
+              }
+            }
             if (entry.isDirectory) {
               const folderBuffer = compressFolder(zipEntries, entry.entryName);
-           if(folderBuffer)   savePayloadToZip(
-                `${entry.entryName.replace(/\//,"_")}_${pack_id}`,
-                folderBuffer
-              );
+              if (folderBuffer)
+                savePayloadToZip(
+                  `${pack_id}}${entry.entryName}`,
+                  //   .replace(".zip", "")
+                  //      .replace(/\//, "_")}`,
+                  folderBuffer
+                );
             }
           });
+
           try {
+            const uuid =
+              extractUUID(pack_id) ?? pack_id.replace(".zip", "").split("}")[0];
             let key = packs.find(
-              (x) => x.text == pack_id || x.uuid == pack_id
+              (x) => x.text == uuid || x.uuid == uuid
             ).content_key;
-            let identity = packs.find(
-              (x) => x.text == pack_id || x.uuid == pack_id
-            ).content_identity;
             let content;
             const contentEntry = zipEntries.find(
-              (entry) => entry.entryName == "content.json"
+              (entry) => entry.entryName == "contents.json"
             );
-            const zip = zipEntries.find((x) => x.entryName === "content.zip");
-            if (zip) {
-              const content = zip.getData();
-              savePayloadToZip(pack_id, content);
-            }
             const keyBuffer = Buffer.from(key);
             const iv = keyBuffer.slice(0, 16);
             if (contentEntry) {
@@ -255,7 +273,7 @@ getResult({
               }
               resolve({ pack_id, buffer: newZip.toBuffer() });
             } else {
-              if (zipEntries.find((e) => e.entryName == "manifest.json"))
+              if (zipEntries.map((x) => x.entryName).includes("manifest.json"))
                 resolve({ pack_id, buffer: payloadBuffer });
               else resolve();
             }
@@ -346,8 +364,12 @@ getResult({
     });
     client.on("close", async () => {
       const zip = new AdmZip();
-
-      let zipFiles = await Promise.all(payloads);
+      let plenth = 0;
+      let zipFiles;
+      while (plenth !== payloads.length) {
+        zipFiles = await Promise.all(payloads);
+        plenth = payloads.length;
+      }
       zipFiles
         .filter((x) => typeof x !== "undefined")
         .forEach((buff, i) => {
