@@ -38,6 +38,7 @@ getResult({
   getResult({
     type: "input",
     message: "Sunucu Port nedir?",
+    default:"19132",
     validate: (token) => {
       return !isNaN(Number(token));
     },
@@ -365,7 +366,7 @@ getResult({
     client.on("close", async () => {
       const zip = new AdmZip();
       let plenth = 0;
-      let zipFiles;
+      let zipFiles = []
       while (plenth !== payloads.length) {
         zipFiles = await Promise.all(payloads);
         plenth = payloads.length;
